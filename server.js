@@ -9,20 +9,27 @@ const PORT = process.env.PORT || 8080;
 app.use(bodyParser.json());
 app.use(express.static(__dirname));
 
-// POST /task -> append to task-queue.json
+// Append to task-queue.json (for logging multiple tasks)
 app.post('/task', (req, res) => {
     const task = req.body;
-    console.log('[+] Incoming task:', task);
+    console.log('[+] Incoming task to /task:', task);
     fs.appendFileSync('task-queue.json', JSON.stringify(task) + '\n');
-    res.status(200).json({ status: 'received' });
+    res.status(200).json({ status: 'queued' });
 });
 
-// ✅ NEW: POST /live -> overwrite live-task.json
+// ✅ Overwrite live-task.json with timestamp
 app.post('/live', (req, res) => {
     const task = req.body;
-    console.log('[*] Overwriting live task:', task);
-    fs.writeFileSync('live-task.json', JSON.stringify(task, null, 2));
-    res.status(200).json({ status: 'live task updated' });
+    task.timestamp = Date.now(); // force Lex to detect as new
+    const final = JSON.stringify(task, null, 2);
+    try {
+        fs.writeFileSync('live-task.json', final);
+        console.log('[*] live-task.json updated:', task);
+        res.status(200).json({ status: 'live task written' });
+    } catch (e) {
+        console.error('[!] Failed to write live-task.json:', e.message);
+        res.status(500).json({ status: 'error', error: e.message });
+    }
 });
 
 // Health check
