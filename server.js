@@ -6,13 +6,10 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// Middleware
 app.use(bodyParser.json());
-
-// 🔥 THIS LINE allows serving static files like live-task.json
 app.use(express.static(__dirname));
 
-// Task Receiver Endpoint (for GPT)
+// POST /task -> append to task-queue.json
 app.post('/task', (req, res) => {
     const task = req.body;
     console.log('[+] Incoming task:', task);
@@ -20,7 +17,15 @@ app.post('/task', (req, res) => {
     res.status(200).json({ status: 'received' });
 });
 
-// Health Check
+// ✅ NEW: POST /live -> overwrite live-task.json
+app.post('/live', (req, res) => {
+    const task = req.body;
+    console.log('[*] Overwriting live task:', task);
+    fs.writeFileSync('live-task.json', JSON.stringify(task, null, 2));
+    res.status(200).json({ status: 'live task updated' });
+});
+
+// Health check
 app.get('/', (req, res) => {
     res.send('Lex Cloud Bridge is live.');
 });
